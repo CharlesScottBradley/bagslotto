@@ -131,16 +131,16 @@ export default function Home() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl md:text-5xl font-bold mb-2">
-            BAGS<span className="text-yellow-400">LOTTO</span>
+            BAGS<span className="text-emerald-400">LOTTO</span>
           </h1>
-          <div className="text-5xl md:text-7xl font-black text-yellow-400 mb-4">
+          <div className="text-5xl md:text-7xl font-black text-emerald-400 mb-4">
             $100,000 LOTTERY
           </div>
         </div>
 
         {/* Rules */}
         <div className="bg-zinc-900 rounded-xl p-6 mb-8 border border-zinc-800">
-          <h2 className="text-xl font-semibold mb-4 text-yellow-400">Rules</h2>
+          <h2 className="text-xl font-semibold mb-4 text-emerald-400">Rules</h2>
           <ul className="space-y-2 text-zinc-300">
             <li>Every <span className="text-white font-semibold">10,000 tokens</span> = 1 ticket</li>
             <li>Maximum <span className="text-white font-semibold">20,000,000 tokens</span> = 2,000 tickets (cap)</li>
@@ -151,8 +151,8 @@ export default function Home() {
 
         {/* Drawing Info - Only show when announced */}
         {DRAWING_CONFIG.announced && (
-          <div className="bg-yellow-400/10 rounded-xl p-6 mb-8 border-2 border-yellow-400">
-            <h2 className="text-xl font-semibold mb-4 text-yellow-400">DRAWING ANNOUNCED</h2>
+          <div className="bg-emerald-400/10 rounded-xl p-6 mb-8 border-2 border-emerald-400">
+            <h2 className="text-xl font-semibold mb-4 text-emerald-400">DRAWING ANNOUNCED</h2>
             <div className="space-y-3 text-zinc-300">
               <div>
                 <span className="text-zinc-400">Target Block Slot:</span>{' '}
@@ -168,7 +168,7 @@ export default function Home() {
                     href={DRAWING_CONFIG.announcementUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-yellow-400 hover:text-yellow-300 underline"
+                    className="text-emerald-400 hover:text-emerald-300 underline"
                   >
                     View Announcement
                   </a>
@@ -184,7 +184,7 @@ export default function Home() {
 
         {/* Verifiable Randomness */}
         <div className="bg-zinc-900 rounded-xl p-6 mb-8 border border-zinc-800">
-          <h2 className="text-xl font-semibold mb-4 text-yellow-400">Verifiable Randomness</h2>
+          <h2 className="text-xl font-semibold mb-4 text-emerald-400">Verifiable Randomness</h2>
           <p className="text-zinc-300 mb-4">
             The winner selection is provably fair and verifiable by anyone. Here&apos;s how it works:
           </p>
@@ -222,11 +222,11 @@ export default function Home() {
               onChange={(e) => setSearchWallet(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && searchForWallet()}
               placeholder="Enter your wallet address..."
-              className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white placeholder-zinc-500 focus:border-yellow-400 focus:outline-none"
+              className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white placeholder-zinc-500 focus:border-emerald-400 focus:outline-none"
             />
             <button
               onClick={searchForWallet}
-              className="bg-yellow-400 text-black font-semibold px-6 py-3 rounded-lg hover:bg-yellow-300 transition-colors"
+              className="bg-emerald-400 text-black font-semibold px-6 py-3 rounded-lg hover:bg-emerald-300 transition-colors"
             >
               Search
             </button>
@@ -242,7 +242,7 @@ export default function Home() {
                     Balance: <span className="text-white font-semibold">{formatNumber(Math.floor(searchResult.balance))}</span> tokens
                   </div>
                   <div className="text-zinc-300">
-                    Tickets: <span className="text-yellow-400 font-bold text-xl">{formatNumber(searchResult.tickets)}</span>
+                    Tickets: <span className="text-emerald-400 font-bold text-xl">{formatNumber(searchResult.tickets)}</span>
                   </div>
                 </div>
               ) : (
@@ -267,7 +267,7 @@ export default function Home() {
         {/* Token not set message */}
         {!TOKEN_MINT && (
           <div className="bg-zinc-900 rounded-xl p-8 border border-zinc-800 text-center">
-            <div className="text-2xl font-bold text-yellow-400 mb-2">Coming Soon</div>
+            <div className="text-2xl font-bold text-emerald-400 mb-2">Coming Soon</div>
             <div className="text-zinc-400">
               Eligible holders list will be available after token launch
             </div>
@@ -290,7 +290,7 @@ export default function Home() {
                 Last updated: <span className="text-white">{formatLastUpdated()}</span>
               </div>
               <div>
-                Next refresh: <span className="text-yellow-400 font-mono">{getTimeUntilRefresh()}</span>
+                Next refresh: <span className="text-emerald-400 font-mono">{getTimeUntilRefresh()}</span>
               </div>
             </div>
 
@@ -304,7 +304,7 @@ export default function Home() {
                 <div className="text-sm text-zinc-400">Eligible</div>
               </div>
               <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800 text-center">
-                <div className="text-2xl font-bold text-yellow-400">{formatNumber(data.stats.totalTickets)}</div>
+                <div className="text-2xl font-bold text-emerald-400">{formatNumber(data.stats.totalTickets)}</div>
                 <div className="text-sm text-zinc-400">Total Tickets</div>
               </div>
             </div>
@@ -337,7 +337,7 @@ export default function Home() {
                       <td className="px-4 py-3 text-right text-zinc-300">
                         {formatNumber(Math.floor(entry.balance))}
                       </td>
-                      <td className="px-4 py-3 text-right text-yellow-400 font-semibold">
+                      <td className="px-4 py-3 text-right text-emerald-400 font-semibold">
                         {formatNumber(entry.tickets)}
                       </td>
                     </tr>
