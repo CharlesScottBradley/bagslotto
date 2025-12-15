@@ -21,8 +21,8 @@ interface LotteryData {
 }
 
 // Hardcoded token mint - will be set after launch
-// TEST MODE: Using BONK for dry run - replace with actual token after launch
-const TOKEN_MINT = 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263' // BONK token
+// TEST MODE: Using SLERF for dry run
+const TOKEN_MINT = '7BgBvyjrZX1YKz4oh9mjb8ZScatkkwb8DzFx7LoiVkM3' // SLERF
 
 // Refresh interval: 5 minutes
 const REFRESH_INTERVAL = 5 * 60 * 1000
