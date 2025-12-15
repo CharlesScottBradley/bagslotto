@@ -1,6 +1,9 @@
 /**
  * Birdeye API client for fetching token holders
  * Docs: https://docs.birdeye.so
+ *
+ * NOTE: The holder list endpoint (/defi/v3/token/holder) requires
+ * Birdeye Starter tier or higher. If you get 404, upgrade your plan.
  */
 
 const BIRDEYE_BASE = 'https://public-api.birdeye.so'
@@ -26,6 +29,8 @@ export interface HolderListResponse {
 /**
  * Fetch all token holders with pagination
  * Returns up to 10,000 holders (Birdeye limit)
+ *
+ * REQUIRES: Birdeye Starter tier or higher
  */
 export async function fetchAllHolders(
   tokenAddress: string,
@@ -50,8 +55,14 @@ export async function fetchAllHolders(
         },
       })
 
+      if (response.status === 404) {
+        console.error(`[birdeye] 404 error - holder endpoint requires Starter tier or higher`)
+        throw new Error('Birdeye holder API requires Starter tier or higher. Upgrade at birdeye.so')
+      }
+
       if (!response.ok) {
-        console.error(`[birdeye] Failed at offset ${offset}: ${response.status}`)
+        const text = await response.text()
+        console.error(`[birdeye] Failed at offset ${offset}: ${response.status} - ${text}`)
         break
       }
 
@@ -84,7 +95,7 @@ export async function fetchAllHolders(
 
     } catch (error) {
       console.error(`[birdeye] Error at offset ${offset}:`, error)
-      break
+      throw error
     }
   }
 
@@ -94,6 +105,7 @@ export async function fetchAllHolders(
 
 /**
  * Get token metadata (for filtering LP, etc.)
+ * This endpoint works on free tier
  */
 export async function getTokenOverview(
   tokenAddress: string,

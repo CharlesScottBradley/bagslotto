@@ -121,3 +121,136 @@ export const EXCLUDED_ADDRESSES = new Set([
 export function isExcludedAddress(address: string): boolean {
   return EXCLUDED_ADDRESSES.has(address)
 }
+
+// =============================================================================
+// TOKEN HOLDER FETCHING (Fallback for when Birdeye premium not available)
+// =============================================================================
+
+export interface TokenHolder {
+  owner: string
+  balance: number
+}
+
+/**
+ * Fetch all token holders using Helius RPC
+ * Uses getTokenAccounts with pagination
+ *
+ * Note: This can be slow for tokens with many holders
+ */
+export async function fetchAllHoldersHelius(
+  tokenMint: string,
+  heliusApiKey: string,
+  maxHolders: number = 10000
+): Promise<TokenHolder[]> {
+  const holders: TokenHolder[] = []
+  let cursor: string | undefined
+
+  console.log(`[helius] Fetching holders for ${tokenMint}...`)
+
+  const url = `https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`
+
+  while (holders.length < maxHolders) {
+    try {
+      const body: Record<string, unknown> = {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'getTokenAccounts',
+        params: {
+          mint: tokenMint,
+          limit: 1000,
+          ...(cursor ? { cursor } : {}),
+        },
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+
+      if (!response.ok) {
+        console.error(`[helius] Failed: ${response.status}`)
+        break
+      }
+
+      const data = await response.json()
+
+      if (data.error) {
+        console.error(`[helius] API error:`, data.error)
+        break
+      }
+
+      const accounts = data.result?.token_accounts || []
+
+      if (accounts.length === 0) {
+        console.log(`[helius] No more accounts`)
+        break
+      }
+
+      for (const acc of accounts) {
+        // Skip zero balances
+        if (!acc.amount || acc.amount === '0') continue
+
+        holders.push({
+          owner: acc.owner,
+          balance: Number(acc.amount) / Math.pow(10, acc.decimals || 9),
+        })
+      }
+
+      console.log(`[helius] Fetched ${holders.length} holders...`)
+
+      cursor = data.result?.cursor
+      if (!cursor) break
+
+      // Rate limit
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+    } catch (error) {
+      console.error(`[helius] Error:`, error)
+      break
+    }
+  }
+
+  // Sort by balance descending
+  holders.sort((a, b) => b.balance - a.balance)
+
+  console.log(`[helius] Total holders fetched: ${holders.length}`)
+  return holders
+}
+
+/**
+ * Get token metadata using Helius DAS
+ */
+export async function getTokenMetadataHelius(
+  tokenMint: string,
+  heliusApiKey: string
+): Promise<{ symbol: string; name: string; decimals: number } | null> {
+  try {
+    const url = `https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'getAsset',
+        params: { id: tokenMint },
+      }),
+    })
+
+    if (!response.ok) return null
+
+    const data = await response.json()
+
+    if (data.error || !data.result) return null
+
+    return {
+      symbol: data.result.content?.metadata?.symbol || 'UNKNOWN',
+      name: data.result.content?.metadata?.name || 'Unknown Token',
+      decimals: data.result.token_info?.decimals || 9,
+    }
+  } catch {
+    return null
+  }
+}
