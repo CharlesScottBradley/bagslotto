@@ -20,9 +20,8 @@ interface LotteryData {
   lastUpdated: number
 }
 
-// Hardcoded token mint - will be set after launch
-// TEST MODE: Using SLERF for dry run
-const TOKEN_MINT = '7BgBvyjrZX1YKz4oh9mjb8ZScatkkwb8DzFx7LoiVkM3' // SLERF
+// Hardcoded token mint
+const TOKEN_MINT = '5PqagZKug3F9K4mSzFiwJt2rHdjwhA9GQqtNiZS2BAGS' // BAGS
 
 // Refresh interval: 5 minutes
 const REFRESH_INTERVAL = 5 * 60 * 1000
