@@ -151,6 +151,8 @@ export const EXCLUDED_ADDRESSES = new Set([
   'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
   // Associated Token Program
   'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL',
+  // Dev wallet
+  '36xH1EnLfUgenU8BBQN61Gn2JCE2gceBJDsGmSAzks3L',
 ])
 
 /**
