@@ -3,6 +3,11 @@
  * Used to detect if a wallet has sold any tokens
  */
 
+// Simple in-memory cache for eligibility results
+// Key: `${tokenMint}:${walletAddress}`, Value: { eligible, reason, timestamp }
+const eligibilityCache = new Map<string, { eligible: boolean; reason?: string; timestamp: number }>()
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
 export interface TokenTransfer {
   mint: string
   fromUserAccount: string
@@ -26,7 +31,16 @@ export async function hasNeverSold(
   tokenMint: string,
   heliusApiKey: string
 ): Promise<{ eligible: boolean; reason?: string }> {
+  // Check cache first
+  const cacheKey = `${tokenMint}:${walletAddress}`
+  const cached = eligibilityCache.get(cacheKey)
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return { eligible: cached.eligible, reason: cached.reason }
+  }
+
   try {
+    // Use Helius parsed transaction history API - only get TRANSFER type transactions
+    // And filter for our specific token in the query
     const url = `https://api.helius.xyz/v0/addresses/${walletAddress}/transactions?api-key=${heliusApiKey}&type=TRANSFER`
 
     const response = await fetch(url)
@@ -49,15 +63,21 @@ export async function hasNeverSold(
           transfer.fromUserAccount === walletAddress &&
           transfer.tokenAmount > 0
         ) {
-          return {
+          const result = {
             eligible: false,
-            reason: `Sold/transferred ${transfer.tokenAmount} tokens (tx: ${tx.signature.slice(0, 8)}...)`
+            reason: `Sold/transferred ${transfer.tokenAmount} tokens`
           }
+          // Cache the result
+          eligibilityCache.set(cacheKey, { ...result, timestamp: Date.now() })
+          return result
         }
       }
     }
 
-    return { eligible: true }
+    const result = { eligible: true }
+    // Cache the result
+    eligibilityCache.set(cacheKey, { ...result, timestamp: Date.now() })
+    return result
 
   } catch (error) {
     console.error(`[helius] Error checking ${walletAddress}:`, error)
@@ -66,7 +86,7 @@ export async function hasNeverSold(
 }
 
 /**
- * Batch check multiple wallets for sells
+ * Batch check multiple wallets for sells - PARALLEL version
  * Returns map of wallet -> eligibility
  */
 export async function batchCheckSells(
@@ -77,17 +97,35 @@ export async function batchCheckSells(
 ): Promise<Map<string, { eligible: boolean; reason?: string }>> {
   const results = new Map<string, { eligible: boolean; reason?: string }>()
 
-  for (let i = 0; i < wallets.length; i++) {
-    const wallet = wallets[i]
-    const result = await hasNeverSold(wallet, tokenMint, heliusApiKey)
-    results.set(wallet, result)
+  // Process in parallel batches of 10 to avoid rate limits
+  const BATCH_SIZE = 10
+  let processed = 0
 
-    if (onProgress) {
-      onProgress(i + 1, wallets.length)
+  for (let i = 0; i < wallets.length; i += BATCH_SIZE) {
+    const batch = wallets.slice(i, i + BATCH_SIZE)
+
+    // Run batch in parallel
+    const batchResults = await Promise.all(
+      batch.map(async (wallet) => {
+        const result = await hasNeverSold(wallet, tokenMint, heliusApiKey)
+        return { wallet, result }
+      })
+    )
+
+    // Store results
+    for (const { wallet, result } of batchResults) {
+      results.set(wallet, result)
     }
 
-    // Rate limit: 100ms between requests (10 rps)
-    await new Promise(resolve => setTimeout(resolve, 100))
+    processed += batch.length
+    if (onProgress) {
+      onProgress(processed, wallets.length)
+    }
+
+    // Rate limit between batches: 100ms
+    if (i + BATCH_SIZE < wallets.length) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
   }
 
   return results
@@ -252,5 +290,22 @@ export async function getTokenMetadataHelius(
     }
   } catch {
     return null
+  }
+}
+
+/**
+ * Clear the eligibility cache (useful for forcing refresh)
+ */
+export function clearEligibilityCache(): void {
+  eligibilityCache.clear()
+}
+
+/**
+ * Get cache stats for debugging
+ */
+export function getCacheStats(): { size: number; entries: string[] } {
+  return {
+    size: eligibilityCache.size,
+    entries: Array.from(eligibilityCache.keys()),
   }
 }

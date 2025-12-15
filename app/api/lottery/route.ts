@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
         totalTickets,
         source: usedSource,
       },
-      entries: entries.slice(0, 100), // Return top 100 for preview
+      entries, // Return all eligible entries
       result,
     })
 
