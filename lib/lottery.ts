@@ -22,6 +22,16 @@ export interface LotteryResult {
   totalEligible: number
   winningTicket: number
   timestamp: number
+  blockHash?: string
+  blockSlot?: number
+}
+
+export interface LotterySnapshot {
+  entries: LotteryEntry[]
+  totalTickets: number
+  totalEligible: number
+  snapshotTime: number
+  tokenMint: string
 }
 
 const TOKENS_PER_TICKET = 10_000
@@ -71,6 +81,9 @@ export function buildLotteryEntries(
 /**
  * Pick a random winner using weighted random selection
  * Uses cryptographically random number via Web Crypto API
+ *
+ * NOTE: This is for testing only. For the actual lottery,
+ * use pickWinnerVerifiable() with a Solana block hash.
  */
 export function pickWinner(entries: LotteryEntry[]): LotteryResult | null {
   // Filter to only eligible entries
@@ -106,6 +119,116 @@ export function pickWinner(entries: LotteryEntry[]): LotteryResult | null {
 
   // Should never reach here
   return null
+}
+
+/**
+ * VERIFIABLE RANDOM WINNER SELECTION
+ *
+ * Uses a Solana block hash as the random seed.
+ * This is provably fair because:
+ * 1. The block hash is determined by the Solana network, not us
+ * 2. We announce the target block BEFORE it's mined
+ * 3. Anyone can verify the result using the same inputs
+ *
+ * Algorithm:
+ * winningTicket = (BigInt('0x' + blockHash) % BigInt(totalTickets)) + 1n
+ */
+export function pickWinnerVerifiable(
+  entries: LotteryEntry[],
+  blockHash: string,
+  blockSlot: number
+): LotteryResult | null {
+  // Filter to only eligible entries
+  const eligible = entries.filter(e => e.eligible && e.tickets > 0)
+
+  if (eligible.length === 0) {
+    console.error('[lottery] No eligible entries!')
+    return null
+  }
+
+  // Sort entries deterministically by wallet address for reproducibility
+  eligible.sort((a, b) => a.wallet.localeCompare(b.wallet))
+
+  // Calculate total tickets
+  const totalTickets = eligible.reduce((sum, e) => sum + e.tickets, 0)
+
+  // Convert block hash to winning ticket number
+  // Remove '0x' prefix if present
+  const cleanHash = blockHash.startsWith('0x') ? blockHash.slice(2) : blockHash
+  const hashBigInt = BigInt('0x' + cleanHash)
+  const winningTicketBigInt = (hashBigInt % BigInt(totalTickets)) + 1n
+  const winningTicket = Number(winningTicketBigInt)
+
+  // Find the winner by iterating through sorted entries
+  let ticketCount = 0
+  for (const entry of eligible) {
+    ticketCount += entry.tickets
+    if (ticketCount >= winningTicket) {
+      return {
+        winner: entry,
+        totalTickets,
+        totalEligible: eligible.length,
+        winningTicket,
+        timestamp: Date.now(),
+        blockHash: cleanHash,
+        blockSlot,
+      }
+    }
+  }
+
+  // Should never reach here
+  return null
+}
+
+/**
+ * Create a snapshot of current eligible entries
+ * This should be saved and published before announcing the target block
+ */
+export function createSnapshot(
+  entries: LotteryEntry[],
+  tokenMint: string
+): LotterySnapshot {
+  const eligible = entries.filter(e => e.eligible && e.tickets > 0)
+  // Sort deterministically
+  eligible.sort((a, b) => a.wallet.localeCompare(b.wallet))
+
+  return {
+    entries: eligible,
+    totalTickets: eligible.reduce((sum, e) => sum + e.tickets, 0),
+    totalEligible: eligible.length,
+    snapshotTime: Date.now(),
+    tokenMint,
+  }
+}
+
+/**
+ * Verify a lottery result given a snapshot and block hash
+ * Anyone can run this to confirm the winner was selected fairly
+ */
+export function verifyResult(
+  snapshot: LotterySnapshot,
+  blockHash: string,
+  claimedWinner: string
+): { valid: boolean; calculatedWinner: string; winningTicket: number } {
+  const cleanHash = blockHash.startsWith('0x') ? blockHash.slice(2) : blockHash
+  const hashBigInt = BigInt('0x' + cleanHash)
+  const winningTicketBigInt = (hashBigInt % BigInt(snapshot.totalTickets)) + 1n
+  const winningTicket = Number(winningTicketBigInt)
+
+  // Find winner from snapshot
+  let ticketCount = 0
+  for (const entry of snapshot.entries) {
+    ticketCount += entry.tickets
+    if (ticketCount >= winningTicket) {
+      return {
+        valid: entry.wallet === claimedWinner,
+        calculatedWinner: entry.wallet,
+        winningTicket,
+      }
+    }
+  }
+
+  return { valid: false, calculatedWinner: '', winningTicket }
 }
 
 /**
