@@ -133,9 +133,14 @@ export default function Home() {
           <h1 className="text-4xl md:text-5xl font-bold mb-2">
             BAGS<span className="text-emerald-400">LOTTO</span>
           </h1>
-          <div className="text-5xl md:text-7xl font-black text-emerald-400 mb-4">
+          <div className="text-5xl md:text-7xl font-black text-emerald-400 mb-2">
             $100,000 LOTTERY
           </div>
+          {TOKEN_MINT && (
+            <div className="text-sm text-zinc-500 font-mono">
+              CA: {TOKEN_MINT}
+            </div>
+          )}
         </div>
 
         {/* Rules */}
