@@ -20,8 +20,8 @@ interface LotteryData {
   lastUpdated: number
 }
 
-// Hardcoded token mint
-const TOKEN_MINT = '5PqagZKug3F9K4mSzFiwJt2rHdjwhA9GQqtNiZS2BAGS' // BAGS
+// Hardcoded token mint - set this when ready
+const TOKEN_MINT = ''
 
 // Refresh interval: 5 minutes
 const REFRESH_INTERVAL = 5 * 60 * 1000
