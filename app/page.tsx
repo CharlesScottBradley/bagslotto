@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 interface LotteryEntry {
   wallet: string
@@ -17,10 +17,22 @@ interface LotteryData {
     eligibleHolders: number
     totalTickets: number
   }
+  lastUpdated: number
 }
 
 // Hardcoded token mint - will be set after launch
 const TOKEN_MINT = '' // Add your token mint here after launch
+
+// Refresh interval: 5 minutes
+const REFRESH_INTERVAL = 5 * 60 * 1000
+
+// Drawing configuration - update these when ready to draw
+const DRAWING_CONFIG = {
+  announced: false, // Set to true when drawing is announced
+  targetBlockSlot: 0, // The Solana block slot to use for randomness
+  snapshotTime: '', // When the snapshot was taken (ISO string)
+  announcementUrl: '', // Link to Twitter/announcement
+}
 
 export default function Home() {
   const [searchWallet, setSearchWallet] = useState('')
@@ -29,15 +41,9 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [searchResult, setSearchResult] = useState<LotteryEntry | null>(null)
   const [searched, setSearched] = useState(false)
+  const [nextRefresh, setNextRefresh] = useState<number>(0)
 
-  // Load eligible holders on mount (once token is set)
-  useEffect(() => {
-    if (TOKEN_MINT) {
-      loadHolders()
-    }
-  }, [])
-
-  const loadHolders = async () => {
+  const loadHolders = useCallback(async () => {
     setLoading(true)
     setError(null)
 
@@ -57,12 +63,43 @@ export default function Home() {
       setData({
         entries: json.entries.filter((e: LotteryEntry) => e.eligible),
         stats: json.stats,
+        lastUpdated: Date.now(),
       })
+      setNextRefresh(Date.now() + REFRESH_INTERVAL)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setLoading(false)
     }
+  }, [])
+
+  // Load eligible holders on mount and refresh every 5 minutes
+  useEffect(() => {
+    if (TOKEN_MINT) {
+      loadHolders()
+      const interval = setInterval(loadHolders, REFRESH_INTERVAL)
+      return () => clearInterval(interval)
+    }
+  }, [loadHolders])
+
+  // Force re-render for countdown timer
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const timer = setInterval(() => setTick(t => t + 1), 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const getTimeUntilRefresh = () => {
+    if (!nextRefresh) return ''
+    const diff = Math.max(0, nextRefresh - Date.now())
+    const mins = Math.floor(diff / 60000)
+    const secs = Math.floor((diff % 60000) / 1000)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const formatLastUpdated = () => {
+    if (!data?.lastUpdated) return ''
+    return new Date(data.lastUpdated).toLocaleTimeString()
   }
 
   const searchForWallet = () => {
@@ -111,6 +148,39 @@ export default function Home() {
             <li>LP wallets and programs are excluded</li>
           </ul>
         </div>
+
+        {/* Drawing Info - Only show when announced */}
+        {DRAWING_CONFIG.announced && (
+          <div className="bg-yellow-400/10 rounded-xl p-6 mb-8 border-2 border-yellow-400">
+            <h2 className="text-xl font-semibold mb-4 text-yellow-400">DRAWING ANNOUNCED</h2>
+            <div className="space-y-3 text-zinc-300">
+              <div>
+                <span className="text-zinc-400">Target Block Slot:</span>{' '}
+                <span className="text-white font-mono font-bold">{DRAWING_CONFIG.targetBlockSlot.toLocaleString()}</span>
+              </div>
+              <div>
+                <span className="text-zinc-400">Snapshot Taken:</span>{' '}
+                <span className="text-white">{DRAWING_CONFIG.snapshotTime}</span>
+              </div>
+              {DRAWING_CONFIG.announcementUrl && (
+                <div>
+                  <a
+                    href={DRAWING_CONFIG.announcementUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-yellow-400 hover:text-yellow-300 underline"
+                  >
+                    View Announcement
+                  </a>
+                </div>
+              )}
+            </div>
+            <div className="mt-4 p-3 bg-zinc-800 rounded-lg text-sm text-zinc-400">
+              The winner will be determined once block {DRAWING_CONFIG.targetBlockSlot.toLocaleString()} is mined.
+              The block hash will be used as the random seed.
+            </div>
+          </div>
+        )}
 
         {/* Verifiable Randomness */}
         <div className="bg-zinc-900 rounded-xl p-6 mb-8 border border-zinc-800">
@@ -213,20 +283,32 @@ export default function Home() {
 
         {/* Stats */}
         {data && (
-          <div className="grid grid-cols-3 gap-4 mb-8">
-            <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800 text-center">
-              <div className="text-2xl font-bold text-white">{formatNumber(data.stats.totalHolders)}</div>
-              <div className="text-sm text-zinc-400">Total Holders</div>
+          <>
+            {/* Last Updated Banner */}
+            <div className="flex justify-between items-center mb-4 text-sm text-zinc-400">
+              <div>
+                Last updated: <span className="text-white">{formatLastUpdated()}</span>
+              </div>
+              <div>
+                Next refresh: <span className="text-yellow-400 font-mono">{getTimeUntilRefresh()}</span>
+              </div>
             </div>
-            <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800 text-center">
-              <div className="text-2xl font-bold text-green-400">{formatNumber(data.stats.eligibleHolders)}</div>
-              <div className="text-sm text-zinc-400">Eligible</div>
+
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800 text-center">
+                <div className="text-2xl font-bold text-white">{formatNumber(data.stats.totalHolders)}</div>
+                <div className="text-sm text-zinc-400">Total Holders</div>
+              </div>
+              <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800 text-center">
+                <div className="text-2xl font-bold text-green-400">{formatNumber(data.stats.eligibleHolders)}</div>
+                <div className="text-sm text-zinc-400">Eligible</div>
+              </div>
+              <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800 text-center">
+                <div className="text-2xl font-bold text-yellow-400">{formatNumber(data.stats.totalTickets)}</div>
+                <div className="text-sm text-zinc-400">Total Tickets</div>
+              </div>
             </div>
-            <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800 text-center">
-              <div className="text-2xl font-bold text-yellow-400">{formatNumber(data.stats.totalTickets)}</div>
-              <div className="text-sm text-zinc-400">Total Tickets</div>
-            </div>
-          </div>
+          </>
         )}
 
         {/* Eligible Holders Table */}
