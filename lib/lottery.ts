@@ -156,7 +156,7 @@ export function pickWinnerVerifiable(
   // Remove '0x' prefix if present
   const cleanHash = blockHash.startsWith('0x') ? blockHash.slice(2) : blockHash
   const hashBigInt = BigInt('0x' + cleanHash)
-  const winningTicketBigInt = (hashBigInt % BigInt(totalTickets)) + 1n
+  const winningTicketBigInt = (hashBigInt % BigInt(totalTickets)) + BigInt(1)
   const winningTicket = Number(winningTicketBigInt)
 
   // Find the winner by iterating through sorted entries
@@ -212,7 +212,7 @@ export function verifyResult(
 ): { valid: boolean; calculatedWinner: string; winningTicket: number } {
   const cleanHash = blockHash.startsWith('0x') ? blockHash.slice(2) : blockHash
   const hashBigInt = BigInt('0x' + cleanHash)
-  const winningTicketBigInt = (hashBigInt % BigInt(snapshot.totalTickets)) + 1n
+  const winningTicketBigInt = (hashBigInt % BigInt(snapshot.totalTickets)) + BigInt(1)
   const winningTicket = Number(winningTicketBigInt)
 
   // Find winner from snapshot
