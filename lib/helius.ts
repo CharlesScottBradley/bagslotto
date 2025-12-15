@@ -153,6 +153,8 @@ export const EXCLUDED_ADDRESSES = new Set([
   'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL',
   // Dev wallet
   '36xH1EnLfUgenU8BBQN61Gn2JCE2gceBJDsGmSAzks3L',
+  // Additional blacklisted wallet
+  '5ZZZ6T7vimeuPbE2EfM9BrChLpzRhw2jsJzWFrsQCxcp',
 ])
 
 /**
