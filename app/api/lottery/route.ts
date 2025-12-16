@@ -85,13 +85,11 @@ export async function POST(request: NextRequest) {
 
     console.log(`[lottery] ${eligibleHolders.length} holders with 10k+ tokens (excluding LPs)`)
 
-    // Check sell history for each holder
-    console.log(`[lottery] Checking sell history...`)
-    const eligibilityMap = await batchCheckSells(
-      eligibleHolders.map(h => h.owner),
-      tokenMint,
-      heliusKey
-    )
+    // All holders with 10k+ tokens are eligible (no sell check)
+    const eligibilityMap = new Map<string, { eligible: boolean; reason?: string }>()
+    for (const holder of eligibleHolders) {
+      eligibilityMap.set(holder.owner, { eligible: true })
+    }
 
     // Build lottery entries
     const entries = buildLotteryEntries(eligibleHolders, eligibilityMap)

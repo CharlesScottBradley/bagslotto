@@ -149,7 +149,6 @@ export default function Home() {
           <ul className="space-y-2 text-zinc-300">
             <li>Every <span className="text-white font-semibold">10,000 tokens</span> = 1 ticket</li>
             <li>Maximum <span className="text-white font-semibold">20,000,000 tokens</span> = 2,000 tickets (cap)</li>
-            <li><span className="text-red-400">Must NEVER have sold</span> any tokens to be eligible</li>
             <li>LP wallets and programs are excluded</li>
           </ul>
         </div>
